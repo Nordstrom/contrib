@@ -98,6 +98,8 @@ func shellOut(cmd string) {
 }
 
 func main() {
+	flag.Parse()
+
 	var (
 		kubeClient       *client.Client
 		kubeClientConfig *client.Config

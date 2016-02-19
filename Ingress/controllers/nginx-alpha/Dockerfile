@@ -15,4 +15,4 @@
 FROM nordstrom/nginx:1.8
 COPY controller /
 COPY default.conf /etc/nginx/nginx.conf
-CMD ["/controller"]
+ENTRYPOINT ["/controller"]
