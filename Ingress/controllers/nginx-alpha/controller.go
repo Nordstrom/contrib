@@ -30,10 +30,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -43,7 +45,9 @@ var (
 )
 
 const (
-	nginxConf = `
+	nginxConfFilePath     = "/etc/nginx/nginx.conf"
+	nginxConfFileTestPath = "/etc/nginx/nginx.test.conf"
+	nginxConf             = `
 events {
   worker_connections 1024;
 }
@@ -104,11 +108,28 @@ func main() {
 	} else if kubeClient, err = client.New(kubeClientConfig); err != nil {
 		log.Fatalf("Failed to create kubernetes client: %v.", err)
 	}
+	updateConfigLoop(kubeClient)
+}
+
+func updateConfigLoop(kubeClient *client.Client) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("Unable to get hostname: %v", err)
+	}
+	ingClient := kubeClient.Extensions().Ingress(api.NamespaceAll)
 	tmpl, _ := template.New("nginx").Parse(nginxConf)
 	rateLimiter := util.NewTokenBucketRateLimiter(0.1, 1)
 	known := &extensions.IngressList{}
 
-	// Controller loop
+	pod, err := kubeClient.Pods(api.NamespaceAll).Get(hostname)
+	if err != nil {
+		log.Fatalf("Unable to get Pod object: %v", err)
+	}
+	eventBroadcaster := record.NewBroadcaster()
+	recorder := eventBroadcaster.NewRecorder(api.EventSource{Component: "nginx-alpha-ingress", Host: hostname})
+	eventBroadcaster.StartRecordingToSink(kubeClient.Events(""))
+	birthCry(pod, recorder)
+
 	shellOut("nginx")
 	for {
 		rateLimiter.Accept()
@@ -121,13 +142,36 @@ func main() {
 			continue
 		}
 		known = ingresses
-		if w, err := os.Create("/etc/nginx/nginx.conf"); err != nil {
-			log.Fatalf("Failed to open %v: %v", nginxConf, err)
+		if w, err := os.Create(nginxConfFileTestPath); err != nil {
+			log.Fatalf("Failed to open %s: %v", nginxConfFileTestPath, err)
 		} else if err := tmpl.Execute(w, ingresses); err != nil {
-			log.Fatalf("Failed to write template %v", err)
+			log.Fatalf("Failed to write template for testing %v", err)
+		}
+		if err := testConfig(); err != nil {
+			reportBadConfig(pod, recorder, err)
+			continue
+		}
+		if err := os.Rename(nginxConfFileTestPath, nginxConfFilePath); err != nil {
+			log.Fatalf("Failed to move test template: %v", err)
 		}
 		shellOut("nginx -s reload")
 	}
+}
+
+func testConfig() error {
+	if _, err := exec.Command("nginx", "-t", "-c", nginxConfFileTestPath).CombinedOutput(); err != nil {
+		log.Printf("Error configuring Nginx for ingresses: %v", err)
+		return err
+	}
+	return nil
+}
+
+func birthCry(object runtime.Object, recorder record.EventRecorder) {
+	recorder.Eventf(object, "Starting", "Starting nginx-alpha ingress controller.")
+}
+
+func reportBadConfig(object runtime.Object, recorder record.EventRecorder, err error) {
+	recorder.Eventf(object, "Error", "Unable to configure Nginx for ingresses: %s", err)
 }
 
 // Lightly adapted from kubernetes/cluster/addons/dns/kube2sky/kube2sky.go
