@@ -118,12 +118,16 @@ func updateConfigLoop(kubeClient *client.Client) {
 	if err != nil {
 		log.Fatalf("Unable to get hostname: %v", err)
 	}
+	podNamespace := os.Getenv("POD_NAMESPACE")
+	if podNamespace == "" {
+		log.Fatalf("Unable to get pod namespace. Please set POD_NAMESPACE")
+	}
 	ingClient := kubeClient.Extensions().Ingress(api.NamespaceAll)
 	tmpl, _ := template.New("nginx").Parse(nginxConf)
 	rateLimiter := util.NewTokenBucketRateLimiter(0.1, 1)
 	known := &extensions.IngressList{}
 
-	pod, err := kubeClient.Pods(api.NamespaceAll).Get(hostname)
+	pod, err := kubeClient.Pods(podNamespace).Get(hostname)
 	if err != nil {
 		log.Fatalf("Unable to get Pod object: %v", err)
 	}
