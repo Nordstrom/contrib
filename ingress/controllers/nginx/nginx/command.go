@@ -37,11 +37,11 @@ func (ngx *Manager) Start() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		glog.Errorf("nginx error: %v", err)
+		glog.Fatalf("nginx error: %v", err)
 	}
 
 	if err := cmd.Wait(); err != nil {
-		glog.Errorf("nginx error: %v", err)
+		glog.Fatalf("nginx error: %v", err)
 	}
 }
 
