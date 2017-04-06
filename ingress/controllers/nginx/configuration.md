@@ -264,6 +264,9 @@ Default is true
 **upstream-fail-timeout:** Sets the time during which the specified number of unsuccessful attempts to communicate with the [server](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) should happen to consider the server unavailable
 
 
+**upstream-skip-sort:** Setting this to 'true' stops the controller from sorting the upstreams by IP. This may help with unbalanced sticky sessions.
+
+
 **use-proxy-protocol:** Enables or disables the use of the [PROXY protocol](https://www.nginx.com/resources/admin-guide/proxy-protocol/) to receive client connection (real IP address) information passed through proxy servers and load balancers such as HAproxy and Amazon Elastic Load Balancer (ELB).
 
 

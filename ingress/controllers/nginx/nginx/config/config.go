@@ -229,6 +229,12 @@ type Configuration struct {
 	// Default: 0, ie use platform liveness probe
 	UpstreamFailTimeout int `structs:"upstream-fail-timeout,omitempty"`
 
+	// Stops the controller from sorting the upstreams by ip address
+	// I suspect this will help with an issue in sticky sessions where the traffic is not
+	// evenly distributed.
+	// Default: false, sort the upstream
+	UpstreamSkipSort bool `structs:"upstream-skip-sort,omitempty"`
+
 	// Enables or disables the use of the PROXY protocol to receive client connection
 	// (real IP address) information passed through proxy servers and load balancers
 	// such as HAproxy and Amazon Elastic Load Balancer (ELB).

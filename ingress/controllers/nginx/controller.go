@@ -777,7 +777,11 @@ func (lbc *loadBalancerController) getUpstreamServers(ngxCfg config.Configuratio
 			glog.Warningf("upstream %v does not have any active endpoints. Using default backend", value.Name)
 			value.Backends = append(value.Backends, nginx.NewDefaultServer())
 		}
-		sort.Sort(nginx.UpstreamServerByAddrPort(value.Backends))
+
+		if ngxCfg.UpstreamSkipSort != true {
+			sort.Sort(nginx.UpstreamServerByAddrPort(value.Backends))
+		}
+
 		aUpstreams = append(aUpstreams, value)
 	}
 	sort.Sort(nginx.UpstreamByNameServers(aUpstreams))
