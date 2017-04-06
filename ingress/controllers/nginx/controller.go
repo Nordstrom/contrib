@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sort"
 	"strconv"
@@ -780,6 +781,12 @@ func (lbc *loadBalancerController) getUpstreamServers(ngxCfg config.Configuratio
 
 		if ngxCfg.UpstreamSkipSort != true {
 			sort.Sort(nginx.UpstreamServerByAddrPort(value.Backends))
+		} else {
+			// randomize
+			for i := range value.Backends {
+				j := rand.Intn(i + 1)
+				value.Backends[i], value.Backends[j] = value.Backends[j], value.Backends[i]
+			}
 		}
 
 		aUpstreams = append(aUpstreams, value)
