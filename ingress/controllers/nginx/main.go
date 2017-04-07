@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -90,6 +91,8 @@ func main() {
 	flags.AddGoFlagSet(flag.CommandLine)
 	flags.Parse(os.Args)
 	clientConfig := kubectl_util.DefaultClientConfig(flags)
+
+	rand.Seed(time.Now().UnixNano())
 
 	glog.Infof("Using build: %v - %v", gitRepo, version)
 
